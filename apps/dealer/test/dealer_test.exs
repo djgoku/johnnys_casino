@@ -19,6 +19,7 @@ defmodule DealerTest do
     {:reply, reply, new_state} = Dealer.handle_call(:join, {:pid, :term}, new_state)
 
     assert reply == {:error, :already_joined_table}
+    assert new_state[:players] == [:pid]
   end
 
   test "player is unable to join a full table" do
