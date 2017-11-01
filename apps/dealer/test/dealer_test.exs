@@ -1,6 +1,5 @@
 defmodule DealerTest do
   use ExUnit.Case
-  doctest Dealer
 
   test "player can join table" do
     state = %{players: [], max_players: 7}
