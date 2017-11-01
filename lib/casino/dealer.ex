@@ -1,4 +1,4 @@
-defmodule Dealer do
+defmodule Casino.Dealer do
   @moduledoc """
   A dealer controls all aspects of a table at johnny's casino.
   """
