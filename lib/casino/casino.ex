@@ -3,16 +3,32 @@ defmodule Casino do
   Documentation for Casino.
   """
 
-  @doc """
-  Hello world.
+    @doc """
+    Sum hand(s).
 
-  ## Examples
+    ## Examples
 
-      iex> Casino.hello
-      :world
+        iex> Casino.hello
+        :world
 
-  """
-  def hello do
-    :world
-  end
+    """
+    def sum_hand(hand) do
+
+      aces = Enum.filter(hand, fn(card) ->
+        {_, rank, _, _} = card
+        rank == "A"
+      end)
+
+      result = Enum.map(hand, fn(card) ->
+        {_, _, _, values} = card
+        values
+      end)
+
+      result
+      |> List.flatten
+      |> Enum.sum
+    end
+
+    def permutations([]), do: [[]]
+    def permutations(list), do: for elem <- list, rest <- permutations(list--[elem]), do: [elem|rest]
 end
