@@ -14,6 +14,9 @@ defmodule Casino.Dealer do
   end
 
   def init([]) do
+
+    send self(), :after_init
+
     {:ok, %{players: [], max_players: 7}}
   end
 
@@ -34,7 +37,7 @@ defmodule Casino.Dealer do
       iex> Dealer.join()
       {:error, :max_players_at_table}
   """
-  @spec join() :: {:ok, {:player_number, pos_integer()}} | {:error, any()}
+  @spec join() :: {:ok, {:player, pos_integer()}} | {:error, any()}
   def join() do
     GenServer.call(__MODULE__, :join)
   end
@@ -57,6 +60,54 @@ defmodule Casino.Dealer do
         end
       _ ->
         {:reply, {:error, :max_players_at_table}, state}
+    end
+  end
+
+  def handle_info(:after_init, state) do
+    players = Casino.Dealer.get_players() ++ [Casino.Player.Dealer]
+
+    if players <= state[:max_players] do
+      Logger.info("(Casino.Dealer) starting a game with #{length(players)} of players")
+      Enum.map(players, fn(player) ->
+        spawn(player, :start_link, [[]])
+      end)
+    else
+      Logger.error("(Casino.Dealer) unable to start game since max players met: #{inspect(players)}")
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info(:start_game, state) do
+    players = state[:players]
+
+    Enum.map(players, fn(player) ->
+      card = get_card()
+      send player, {:card, card}
+    end)
+
+    {:noreply, state}
+  end
+
+  defp get_card() do
+    case ExCardDeck.get_card() do
+      nil ->
+        ExCardDeck.shuffle()
+        ExCardDeck.get_card()
+      card ->
+        card
+    end
+  end
+
+  def get_players() do
+    dealer = Casino.Player.Dealer
+
+    with {:ok, list} <- :application.get_key(:casino, :modules) do
+      list
+      |> Enum.filter(fn(module) ->
+        split = Module.split(module)
+        "Player" in split and module != dealer
+      end)
     end
   end
 end
