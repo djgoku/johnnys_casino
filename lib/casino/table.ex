@@ -42,10 +42,14 @@ defmodule Casino.Table do
     GenServer.call(__MODULE__, :join)
   end
 
+  def get_players() do
+    GenServer.call(__MODULE__, :get_players)
+  end
+
   # Server
 
   def handle_call(:join, {pid, _term}, state) do
-    Logger.debug("(Table) received join from #{inspect pid}")
+    Logger.info("(Table) received join from #{inspect pid}")
 
     max_players = state[:max_players]
     current_players = state[:players]
@@ -63,10 +67,14 @@ defmodule Casino.Table do
     end
   end
 
-  def handle_info(:after_init, state) do
-    players = Casino.Table.get_players() ++ [Casino.Player.Dealer]
+  def handle_call(:get_players, _from, state) do
+    {:reply, state[:players], state}
+  end
 
-    if players <= state[:max_players] do
+  def handle_info(:after_init, state) do
+    players = Casino.Table.find_players() ++ [Casino.Player.Dealer]
+
+    if length(players) <= state[:max_players] do
       Logger.info("(Casino.Table) starting a game with #{length(players)} of players")
       Enum.map(players, fn(player) ->
         spawn(player, :start_link, [[]])
@@ -99,7 +107,7 @@ defmodule Casino.Table do
     end
   end
 
-  def get_players() do
+  def find_players() do
     table = Casino.Player.Dealer
 
     with {:ok, list} <- :application.get_key(:casino, :modules) do
