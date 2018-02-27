@@ -86,8 +86,7 @@ defmodule Casino.Table do
       []
     end
 
-    Logger.debug("#{__MODULE__} pids are #{inspect pids}")
-
+    send self(), :start_game
     state = %{state | players: pids}
 
     {:noreply, state}
@@ -95,7 +94,7 @@ defmodule Casino.Table do
 
   def handle_info(:start_game, state) do
     Logger.info("(Casino.Table) starting a black jack game.")
-    players = state[:players]
+    players = state[:players] ++ state[:players]
 
     Enum.map(players, fn(player) ->
       card = get_card()
