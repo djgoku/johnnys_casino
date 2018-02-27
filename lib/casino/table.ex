@@ -49,7 +49,8 @@ defmodule Casino.Table do
   # Server
 
   def handle_call(:join, {pid, _term}, state) do
-    Logger.info("(Table) received join from #{inspect pid}")
+    registered_name = Keyword.get(Process.info(pid), :registered_name)
+    Logger.info("(Table) received join from #{registered_name} with a pid of #{inspect pid}")
 
     max_players = state[:max_players]
     current_players = state[:players]
