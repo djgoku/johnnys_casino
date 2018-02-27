@@ -64,7 +64,7 @@ defmodule Casino.Table do
   end
 
   def handle_info(:after_init, state) do
-    players = Casino.Table.get_players() ++ [Casino.Player.Table]
+    players = Casino.Table.get_players() ++ [Casino.Player.Dealer]
 
     if players <= state[:max_players] do
       Logger.info("(Casino.Table) starting a game with #{length(players)} of players")
@@ -100,7 +100,7 @@ defmodule Casino.Table do
   end
 
   def get_players() do
-    table = Casino.Player.Table
+    table = Casino.Player.Dealer
 
     with {:ok, list} <- :application.get_key(:casino, :modules) do
       list
