@@ -9,7 +9,7 @@ defmodule Casino.Player.Dealer do
   end
 
   def init([table_pid]) do
-    {:ok, %{table_pid: table_pid}}
+    {:ok, %{table_pid: table_pid, history: [], current_hand: []}}
   end
 
   def dealt_card(card) do
