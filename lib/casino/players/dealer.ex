@@ -24,7 +24,7 @@ defmodule Casino.Player.Dealer do
     GenServer.call(__MODULE__, :hit_or_stay)
   end
 
-  def handle_info(:hit_or_stay, _from, state) do
+  def handle_call(:hit_or_stay, _from, state) do
     {:reply, :stay, state}
   end
 
