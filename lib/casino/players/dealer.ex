@@ -4,24 +4,12 @@ defmodule Casino.Player.Dealer do
 
   # Client
 
-  def start_link([]) do
-    GenServer.start_link(__MODULE__, [], [name: __MODULE__])
+  def start_link([table_pid]) do
+    GenServer.start_link(__MODULE__, [table_pid], [name: __MODULE__])
   end
 
-  def init([]) do
-    player_number = case Casino.Table.join() do
-      {:player, player_number} ->
-        player_number
-      {:error, :max_players_at_table} ->
-        0
-    end
-
-    if is_integer(player_number) and player_number > 0 do
-      {:ok, %{player_number: player_number, history: [], current_hand: []}}
-    else
-      Logger.debug("#{__MODULE__} stop initializing since max_players_at_table.")
-      {:stop, :max_players_at_table}
-    end
+  def init([table_pid]) do
+    {:ok, %{table_pid: table_pid}}
   end
 
   def dealt_card(card) do

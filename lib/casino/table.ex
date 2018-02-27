@@ -75,14 +75,20 @@ defmodule Casino.Table do
   def handle_info(:after_init, state) do
     players = Casino.Table.find_players() ++ [Casino.Player.Dealer]
 
-    if length(players) <= state[:max_players] do
+    pids = if length(players) <= state[:max_players] do
       Logger.info("(Casino.Table) starting a game with #{length(players)} of players")
       Enum.map(players, fn(player) ->
-        spawn(player, :start_link, [[]])
+        {:ok, pid} = player.start_link([self()])
+        pid
       end)
     else
       Logger.error("(Casino.Table) unable to start game since max players met: #{inspect(players)}")
+      []
     end
+
+    Logger.debug("#{__MODULE__} pids are #{inspect pids}")
+
+    state = %{state | players: pids}
 
     {:noreply, state}
   end
