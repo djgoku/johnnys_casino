@@ -8,7 +8,7 @@ defmodule Casino.Application do
   def start(_type, _args) do
     # List all child processes to be supervised
     children = [
-      {Casino.Dealer, []},
+      {Casino.Table, []},
       {ExCardDeck, 1}
       # Starts a worker by calling: Casino.Worker.start_link(arg)
       # {Casino.Worker, arg},

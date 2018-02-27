@@ -1,6 +1,6 @@
-defmodule Casino.Dealer do
+defmodule Casino.Table do
   @moduledoc """
-  A dealer controls all aspects of a table at johnny's casino.
+  A table controls all aspects of a table at johnny's casino.
   """
 
   use GenServer
@@ -26,15 +26,15 @@ defmodule Casino.Dealer do
   ## Examples
 
       # Number returned is position at table
-      iex> Dealer.join()
+      iex> Table.join()
       {:player, 1}
 
       # error trying to re-join table
-      iex> Dealer.join()
+      iex> Table.join()
       {:error, :already_joined_table}
 
       # error max players at table
-      iex> Dealer.join()
+      iex> Table.join()
       {:error, :max_players_at_table}
   """
   @spec join() :: {:ok, {:player, pos_integer()}} | {:error, any()}
@@ -45,7 +45,7 @@ defmodule Casino.Dealer do
   # Server
 
   def handle_call(:join, {pid, _term}, state) do
-    Logger.debug("(Dealer) received join from #{inspect pid}")
+    Logger.debug("(Table) received join from #{inspect pid}")
 
     max_players = state[:max_players]
     current_players = state[:players]
@@ -64,15 +64,15 @@ defmodule Casino.Dealer do
   end
 
   def handle_info(:after_init, state) do
-    players = Casino.Dealer.get_players() ++ [Casino.Player.Dealer]
+    players = Casino.Table.get_players() ++ [Casino.Player.Table]
 
     if players <= state[:max_players] do
-      Logger.info("(Casino.Dealer) starting a game with #{length(players)} of players")
+      Logger.info("(Casino.Table) starting a game with #{length(players)} of players")
       Enum.map(players, fn(player) ->
         spawn(player, :start_link, [[]])
       end)
     else
-      Logger.error("(Casino.Dealer) unable to start game since max players met: #{inspect(players)}")
+      Logger.error("(Casino.Table) unable to start game since max players met: #{inspect(players)}")
     end
 
     {:noreply, state}
@@ -100,13 +100,13 @@ defmodule Casino.Dealer do
   end
 
   def get_players() do
-    dealer = Casino.Player.Dealer
+    table = Casino.Player.Table
 
     with {:ok, list} <- :application.get_key(:casino, :modules) do
       list
       |> Enum.filter(fn(module) ->
         split = Module.split(module)
-        "Player" in split and module != dealer
+        "Player" in split and module != table
       end)
     end
   end
