@@ -50,7 +50,7 @@ defmodule Casino.Table do
 
   def handle_call(:join, {pid, _term}, state) do
     registered_name = Keyword.get(Process.info(pid), :registered_name)
-    Logger.info("(Table) received join from #{registered_name} with a pid of #{inspect pid}")
+    Logger.info("(Casino.Table) received join from #{registered_name} with a pid of #{inspect pid}")
 
     max_players = state[:max_players]
     current_players = state[:players]
@@ -88,6 +88,7 @@ defmodule Casino.Table do
   end
 
   def handle_info(:start_game, state) do
+    Logger.info("(Casino.Table) starting a black jack game.")
     players = state[:players]
 
     Enum.map(players, fn(player) ->
