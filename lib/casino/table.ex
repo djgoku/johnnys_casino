@@ -20,53 +20,11 @@ defmodule Casino.Table do
     {:ok, %{players: [], max_players: 7}}
   end
 
-  @doc """
-  Join a casino table.
-
-  ## Examples
-
-      # Number returned is position at table
-      iex> Table.join()
-      {:player, 1}
-
-      # error trying to re-join table
-      iex> Table.join()
-      {:error, :already_joined_table}
-
-      # error max players at table
-      iex> Table.join()
-      {:error, :max_players_at_table}
-  """
-  @spec join() :: {:ok, {:player, pos_integer()}} | {:error, any()}
-  def join() do
-    GenServer.call(__MODULE__, :join)
-  end
-
   def get_players() do
     GenServer.call(__MODULE__, :get_players)
   end
 
   # Server
-
-  def handle_call(:join, {pid, _term}, state) do
-    registered_name = Keyword.get(Process.info(pid), :registered_name)
-    Logger.info("(Casino.Table) received join from #{registered_name} with a pid of #{inspect pid}")
-
-    max_players = state[:max_players]
-    current_players = state[:players]
-
-    case length(current_players) do
-      x when x < max_players ->
-        if Enum.member?(current_players, pid) do
-          {:reply, {:error, :already_joined_table}, state}
-        else
-          all_players = current_players ++ [pid]
-          {:reply, {:player, length(all_players)}, %{state | players: all_players}}
-        end
-      _ ->
-        {:reply, {:error, :max_players_at_table}, state}
-    end
-  end
 
   def handle_call(:get_players, _from, state) do
     {:reply, state[:players], state}
@@ -100,6 +58,27 @@ defmodule Casino.Table do
       card = get_card()
       send player, {:card, card}
     end)
+
+    send self(), :ask_players_hit_or_stay
+
+    {:noreply, state}
+  end
+
+  def handle_info(:ask_players_hit_or_stay, state) do
+    players = state[:players]
+
+    Enum.map(players, fn(player) ->
+      registered_name = Keyword.get(Process.info(player), :registered_name)
+      hit_or_stay = registered_name.hit_or_stay()
+      Logger.info("#{__MODULE__} asking player if they want to hit or stay player chose to: #{hit_or_stay}")
+
+      if hit_or_stay == :hit do
+        card = get_card()
+        send player, card
+      end
+    end)
+
+    # send self(), :who_won
 
     {:noreply, state}
   end
