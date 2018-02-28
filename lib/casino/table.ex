@@ -37,7 +37,7 @@ defmodule Casino.Table do
       Logger.info("(Casino.Table) starting a game with #{length(players)} of players")
       Enum.map(players, fn(player) ->
         {:ok, pid} = player.start_link([self()])
-        pid
+        {pid, []}
       end)
     else
       Logger.error("(Casino.Table) unable to start game since max players met: #{inspect(players)}")
@@ -52,14 +52,18 @@ defmodule Casino.Table do
 
   def handle_info(:start_game, state) do
     Logger.info("(Casino.Table) starting a black jack game.")
-    players = state[:players] ++ state[:players]
+    players = state[:players]
 
-    Enum.map(players, fn(player) ->
-      card = get_card()
-      send player, {:card, card}
-    end)
+    new_players =
+      players
+      |> Enum.map(fn({player, hand}) -> deal_to_player(player, hand) end)
+      |> Enum.map(fn({player, hand}) -> deal_to_player(player, hand) end)
+
+    Logger.debug("#{__MODULE__} new_players is #{inspect new_players}")
 
     send self(), :ask_players_hit_or_stay
+
+    state = %{state | players: new_players}
 
     {:noreply, state}
   end
@@ -67,20 +71,33 @@ defmodule Casino.Table do
   def handle_info(:ask_players_hit_or_stay, state) do
     players = state[:players]
 
-    Enum.map(players, fn(player) ->
+    Enum.map(players, fn({player, _hand}) ->
       registered_name = Keyword.get(Process.info(player), :registered_name)
       hit_or_stay = registered_name.hit_or_stay()
       Logger.info("#{__MODULE__} asking player if they want to hit or stay player chose to: #{hit_or_stay}")
 
       if hit_or_stay == :hit do
         card = get_card()
-        send player, card
+        send player, {:card, card}
       end
     end)
 
-    # send self(), :who_won
+    send self(), :who_won
 
     {:noreply, state}
+  end
+
+  def handle_info(:who_won, state) do
+    players = state[:players]
+
+    {:noreply, state}
+  end
+
+  defp deal_to_player(player, hand) do
+    card = get_card()
+    hand = hand ++ [card]
+    send player, {:card, card}
+    {player, hand}
   end
 
   defp get_card() do
