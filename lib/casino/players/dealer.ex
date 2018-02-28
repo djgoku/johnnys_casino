@@ -25,7 +25,20 @@ defmodule Casino.Player.Dealer do
   end
 
   def handle_call(:hit_or_stay, _from, state) do
-    {:reply, :stay, state}
+    current_hand = state[:current_hand]
+
+    sum_hand = Casino.sum_hand(current_hand)
+
+    hit_or_stay = case sum_hand do
+      [hand, _] when hand == 17 ->
+        :hit
+      [hand] when hand <= 17 ->
+        :hit
+      _ ->
+        :stay
+    end
+
+    {:reply, hit_or_stay, state}
   end
 
   def handle_info({:card, card}, state) do
