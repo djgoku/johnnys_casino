@@ -19,14 +19,39 @@ defmodule Casino do
         rank == "A"
       end)
 
+      if aces == [] do
+        calculate_sum(hand)
+      else
+        first = List.first(aces)
+
+        new_hand = List.delete(hand, first)
+
+        new_hands = for card <- [11, 1] do
+          temp_card = {"", "", "", [card]}
+          temp_hand = [temp_card] ++ new_hand
+          calculate_sum(temp_hand)
+        end
+        List.flatten(new_hands)
+      end
+    end
+
+    defp calculate_sum(hand) do
       result = Enum.map(hand, fn(card) ->
         {_, _, _, values} = card
-        values
+        
+        new_values = if length(values) == 2 do
+          List.first(values)
+        else
+          values
+        end
+        new_values
       end)
 
-      result
-      |> List.flatten
-      |> Enum.sum
+      new_result = 
+        result
+        |> List.flatten
+        |> Enum.sum
+      [new_result]
     end
 
     def permutations([]), do: [[]]
