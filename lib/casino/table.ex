@@ -14,7 +14,6 @@ defmodule Casino.Table do
   TODO
    - add table events
    - send shuffle event to channel
-   - iterate through when a player is hitting or staying
    - keep stats of players wins/loss
   """
 
@@ -27,7 +26,7 @@ defmodule Casino.Table do
 
     send self(), :after_init
 
-    {:ok, %{players: [], max_players: 7, total_games: 0, number_of_games: 100}}
+    {:ok, %{players: [], max_players: 7, total_games: 0, number_of_games: 100, player_stats: []}}
   end
 
   def get_players() do
@@ -54,8 +53,14 @@ defmodule Casino.Table do
       []
     end
 
+    player_stats = Enum.map(pids, fn({pid, _}) ->
+      registered_name = Keyword.get(Process.info(pid), :registered_name)
+      # {pid, bust, loss, push, win}
+      {registered_name, {0, 0, 0, 0}}
+    end)
+
     send self(), :start_game
-    state = %{state | players: pids}
+    state = %{state | players: pids, player_stats: player_stats}
 
     {:noreply, state}
   end
@@ -81,9 +86,7 @@ defmodule Casino.Table do
   def handle_info(:ask_players_hit_or_stay, state) do
     players = state[:players]
 
-    players = Enum.map(players, fn({player, hand}) ->
-      registered_name = Keyword.get(Process.info(player), :registered_name)
-      
+    players = Enum.map(players, fn({player, hand}) ->      
       answer = GenServer.call(player, :hit_or_stay)
       cards = hit_or_stay(answer, hand, player)
 
@@ -112,6 +115,8 @@ defmodule Casino.Table do
       end)
     else
       Logger.info("#{__MODULE__} well that's the game folks!")
+      player_stats = state[:player_stats]
+      print_game_stats(player_stats)
       players
     end
 
@@ -124,7 +129,8 @@ defmodule Casino.Table do
     Logger.info("#{__MODULE__} seeing who want this game!")
     players = state[:players]
     {dealer, players} = List.pop_at(players, -1)
-    {_, dealer_temp_hand} = dealer
+    {dealer_pid, dealer_temp_hand} = dealer
+    dealer_registered_name = Keyword.get(Process.info(dealer_pid), :registered_name)
     sum_hand = Casino.sum_hand(dealer_temp_hand)
     
     dealer_sum_hand = case sum_hand do
@@ -144,14 +150,24 @@ defmodule Casino.Table do
       
       case who_won(dealer_sum_hand, hand) do
         :dealer_bust ->
+          send self(), {:player_stats, registered_name, :win}
+          send self(), {:player_stats, dealer_registered_name, :bust}
           Logger.info("#{__MODULE__} player #{registered_name} had #{hand} and won, dealer bust with #{dealer_sum_hand}!")
         :player_win ->
+          send self(), {:player_stats, registered_name, :win}
+          send self(), {:player_stats, dealer_registered_name, :loss}
           Logger.info("#{__MODULE__} player #{registered_name} had #{hand} and won, dealer lost with #{dealer_sum_hand}!")
         :player_bust ->
+          send self(), {:player_stats, registered_name, :bust}
+          send self(), {:player_stats, dealer_registered_name, :win}
           Logger.info("#{__MODULE__} player #{registered_name} had #{hand} and bust, dealer won with #{dealer_sum_hand}!")
         :push ->
+          send self(), {:player_stats, registered_name, :push}
+          send self(), {:player_stats, dealer_registered_name, :push}
           Logger.info("#{__MODULE__} player #{registered_name} had #{hand} and pushed, dealer pushed with #{dealer_sum_hand}!!")
         _ ->
+          send self(), {:player_stats, registered_name, :loss}
+          send self(), {:player_stats, dealer_registered_name, :win}
           Logger.info("#{__MODULE__} player #{registered_name} had #{hand} and lost, dealer won with #{dealer_sum_hand}!!")
       end
     end
@@ -159,6 +175,36 @@ defmodule Casino.Table do
     send self(), :next_game
 
     {:noreply, state}
+  end
+
+  def handle_info({:player_stats, pid, outcome}, state) do
+    player_stats = state[:player_stats]
+
+    {_, new_player_stats} = Keyword.get_and_update(player_stats, pid, fn stats ->
+      {b, l, p, w} = stats
+      new_stats = case outcome do
+        :bust ->
+          {b + 1, l, p, w}
+        :loss ->
+          {b, l + 1, p, w}
+        :push ->
+          {b, l, p + 1, w}
+        :win ->
+          {b, l, p, w + 1}
+      end
+
+      {stats, new_stats}
+    end)
+
+    state = %{state | player_stats: new_player_stats}
+
+    {:noreply, state}
+  end
+
+  def print_game_stats(player_stats) do
+    Enum.map(player_stats, fn({player, {busts, losses, pushes, wins}}) ->
+      Logger.info("#{player}: busts #{busts}, losses #{losses}, pushes #{pushes}, wins #{wins}")
+    end)
   end
 
   def hit_or_stay(:stay, cards, _server), do: cards
