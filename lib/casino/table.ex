@@ -12,9 +12,7 @@ defmodule Casino.Table do
 
   @doc """
   TODO
-   - add table events
-   - send shuffle event to channel
-   - keep stats of players wins/loss
+   - 
   """
 
 
@@ -243,9 +241,13 @@ defmodule Casino.Table do
   defp get_card() do
     case ExCardDeck.get_card() do
       nil ->
+        Phoenix.PubSub.broadcast(Casino.PubSub, "table:events", :deck_shuffled)
         ExCardDeck.shuffle()
-        ExCardDeck.get_card()
+        card = ExCardDeck.get_card()
+        Phoenix.PubSub.broadcast(Casino.PubSub, "table:events", {:card_history, card})
+        card
       card ->
+        Phoenix.PubSub.broadcast(Casino.PubSub, "table:events", {:card_history, card})
         card
     end
   end

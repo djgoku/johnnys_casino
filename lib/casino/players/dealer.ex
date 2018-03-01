@@ -9,6 +9,8 @@ defmodule Casino.Player.Dealer do
   end
 
   def init([table_pid]) do
+    Phoenix.PubSub.subscribe(Casino.PubSub, "table:events")
+
     {:ok, %{table_pid: table_pid, history: [], current_hand: []}}
   end
 
@@ -40,6 +42,15 @@ defmodule Casino.Player.Dealer do
     new_history = history ++ [card]
 
     state = %{state | current_hand: new_current_hand, history: new_history}
+
+    {:noreply, state}
+  end
+
+  def handle_info({:card_history, card}, state) do
+    history = state[:history]
+    new_history = history ++ [card]
+
+    state = %{state | history: new_history}
 
     {:noreply, state}
   end
