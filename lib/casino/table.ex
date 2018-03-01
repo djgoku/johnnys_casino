@@ -9,6 +9,16 @@ defmodule Casino.Table do
 
   # Client
 
+
+  @doc """
+  TODO
+   - add table events
+   - send shuffle event to channel
+   - iterate through when a player is hitting or staying
+   - keep stats of players wins/loss
+  """
+
+
   def start_link([]) do
     GenServer.start_link(__MODULE__, [], [name: __MODULE__])
   end
@@ -17,7 +27,7 @@ defmodule Casino.Table do
 
     send self(), :after_init
 
-    {:ok, %{players: [], max_players: 7}}
+    {:ok, %{players: [], max_players: 7, total_games: 0, number_of_games: 100}}
   end
 
   def get_players() do
@@ -73,22 +83,39 @@ defmodule Casino.Table do
 
     players = Enum.map(players, fn({player, hand}) ->
       registered_name = Keyword.get(Process.info(player), :registered_name)
-      hit_or_stay = registered_name.hit_or_stay()
-      Logger.info("#{__MODULE__} asking player if they want to hit or stay player chose to: #{hit_or_stay}")
+      
+      answer = GenServer.call(player, :hit_or_stay)
+      cards = hit_or_stay(answer, hand, player)
 
-      card = if hit_or_stay == :hit do
-        card = get_card()
-        send player, {:card, card}
-        [card]
-      else
-        []
-      end
-
-      {player, hand ++ card}
+      {player, cards}
     end)
 
     send self(), :who_won
     state = %{state | players: players}
+
+    {:noreply, state}
+  end
+
+  def handle_info(:next_game, state) do
+    number_of_games = state[:number_of_games]
+    total_games = state[:total_games]
+    players = state[:players]
+
+    total_games = total_games + 1
+
+    players = if total_games < number_of_games do
+      send self(), :start_game
+      Enum.map(players, fn(p) ->
+        {pid, _} = p
+        send pid, :new_game
+        {pid, []}
+      end)
+    else
+      Logger.info("#{__MODULE__} well that's the game folks!")
+      players
+    end
+
+    state = %{state | players: players, total_games: total_games}
 
     {:noreply, state}
   end
@@ -99,7 +126,15 @@ defmodule Casino.Table do
     {dealer, players} = List.pop_at(players, -1)
     {_, dealer_temp_hand} = dealer
     sum_hand = Casino.sum_hand(dealer_temp_hand)
-    dealer_sum_hand = List.first(sum_hand)
+    
+    dealer_sum_hand = case sum_hand do
+      [hand1, hand2] when hand1 > 21 ->
+        hand2
+      [hand1, _] ->
+        hand1
+      [hand] ->
+        hand
+    end
 
     for p <- players do
       {pid, hand} = p
@@ -109,19 +144,41 @@ defmodule Casino.Table do
       
       case who_won(dealer_sum_hand, hand) do
         :dealer_bust ->
-          Logger.info("#{__MODULE__} player #{registered_name} won because dealer bust!")
+          Logger.info("#{__MODULE__} player #{registered_name} had #{hand} and won, dealer bust with #{dealer_sum_hand}!")
         :player_win ->
-          Logger.info("#{__MODULE__} player #{registered_name} won!")
+          Logger.info("#{__MODULE__} player #{registered_name} had #{hand} and won, dealer lost with #{dealer_sum_hand}!")
         :player_bust ->
-          Logger.info("#{__MODULE__} player #{registered_name} bust!")
+          Logger.info("#{__MODULE__} player #{registered_name} had #{hand} and bust, dealer won with #{dealer_sum_hand}!")
         :push ->
-          Logger.info("#{__MODULE__} player #{registered_name} push!")
+          Logger.info("#{__MODULE__} player #{registered_name} had #{hand} and pushed, dealer pushed with #{dealer_sum_hand}!!")
         _ ->
-          Logger.info("#{__MODULE__} player #{registered_name} lost!")
+          Logger.info("#{__MODULE__} player #{registered_name} had #{hand} and lost, dealer won with #{dealer_sum_hand}!!")
       end
     end
 
+    send self(), :next_game
+
     {:noreply, state}
+  end
+
+  def hit_or_stay(:stay, cards, _server), do: cards
+  def hit_or_stay(:bust, cards, _server), do: cards
+  def hit_or_stay(:hit, cards, server) do
+    card = get_card()
+    send server, {:card, card}
+    cards = cards ++ [card]
+
+    sum_hand = Casino.sum_hand(cards)
+
+    case sum_hand do
+      [_, hand2] when hand2 > 21 ->
+        hit_or_stay(:bust, cards, server)
+      [hand] when hand > 21 ->
+        hit_or_stay(:bust, cards, server)
+      _ ->
+        answer = GenServer.call(server, :hit_or_stay)
+        hit_or_stay(answer, cards, server)
+    end
   end
 
   def who_won(dealer_hand, _player_hand) when dealer_hand > 21, do: :dealer_bust

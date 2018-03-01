@@ -10,4 +10,11 @@ defmodule Casino.TableTest do
     assert :push == Table.who_won(1, 1)
     assert :dealer_win == Table.who_won(2, 1)
   end
+
+  test "hit or stay" do
+    cards = []
+
+    assert [] == Table.hit_or_stay(:stay, cards, self())
+    assert [] == Table.hit_or_stay(:bust, cards, self())
+  end
 end
