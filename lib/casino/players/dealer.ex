@@ -30,7 +30,9 @@ defmodule Casino.Player.Dealer do
     sum_hand = Casino.sum_hand(current_hand)
 
     hit_or_stay = case sum_hand do
-      [hand, _] when hand == 17 ->
+      [hand, _] when hand <= 17 ->
+        :hit
+      [_, hand] when hand <= 17 ->
         :hit
       [hand] when hand <= 17 ->
         :hit
