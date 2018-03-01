@@ -72,8 +72,6 @@ defmodule Casino.Table do
       |> Enum.map(fn({player, hand}) -> deal_to_player(player, hand) end)
       |> Enum.map(fn({player, hand}) -> deal_to_player(player, hand) end)
 
-    Logger.debug("#{__MODULE__} new_players is #{inspect new_players}")
-
     send self(), :ask_players_hit_or_stay
 
     state = %{state | players: new_players}
