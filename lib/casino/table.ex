@@ -222,6 +222,7 @@ defmodule Casino.Table do
         hit_or_stay(answer, cards, server)
     end
   end
+  def hit_or_stay(_, _cards, server), do: []
 
   def who_won(dealer_hand, _player_hand) when dealer_hand > 21, do: :dealer_bust
   def who_won(_dealer_hand, player_hand) when player_hand > 21, do: :player_bust
