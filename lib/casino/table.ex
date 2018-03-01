@@ -71,27 +71,64 @@ defmodule Casino.Table do
   def handle_info(:ask_players_hit_or_stay, state) do
     players = state[:players]
 
-    Enum.map(players, fn({player, _hand}) ->
+    players = Enum.map(players, fn({player, hand}) ->
       registered_name = Keyword.get(Process.info(player), :registered_name)
       hit_or_stay = registered_name.hit_or_stay()
       Logger.info("#{__MODULE__} asking player if they want to hit or stay player chose to: #{hit_or_stay}")
 
-      if hit_or_stay == :hit do
+      card = if hit_or_stay == :hit do
         card = get_card()
         send player, {:card, card}
+        [card]
+      else
+        []
       end
+
+      {player, hand ++ card}
     end)
 
     send self(), :who_won
+    state = %{state | players: players}
 
     {:noreply, state}
   end
 
   def handle_info(:who_won, state) do
+    Logger.info("#{__MODULE__} seeing who want this game!")
     players = state[:players]
+    {dealer, players} = List.pop_at(players, -1)
+    {_, dealer_temp_hand} = dealer
+    sum_hand = Casino.sum_hand(dealer_temp_hand)
+    dealer_sum_hand = List.first(sum_hand)
+
+    for p <- players do
+      {pid, hand} = p
+      sum_hand = Casino.sum_hand(hand)
+      hand = List.first(sum_hand)
+      registered_name = Keyword.get(Process.info(pid), :registered_name)
+      
+      case who_won(dealer_sum_hand, hand) do
+        :dealer_bust ->
+          Logger.info("#{__MODULE__} player #{registered_name} won because dealer bust!")
+        :player_win ->
+          Logger.info("#{__MODULE__} player #{registered_name} won!")
+        :player_bust ->
+          Logger.info("#{__MODULE__} player #{registered_name} bust!")
+        :push ->
+          Logger.info("#{__MODULE__} player #{registered_name} push!")
+        _ ->
+          Logger.info("#{__MODULE__} player #{registered_name} lost!")
+      end
+    end
 
     {:noreply, state}
   end
+
+  def who_won(dealer_hand, _player_hand) when dealer_hand > 21, do: :dealer_bust
+  def who_won(_dealer_hand, player_hand) when player_hand > 21, do: :player_bust
+  def who_won(dealer_hand, player_hand) when player_hand <= 21 and player_hand > dealer_hand, do: :player_win
+  def who_won(dealer_hand, player_hand) when player_hand == dealer_hand, do: :push
+  def who_won(_dealer_hand, _player_hand), do: :dealer_win
 
   defp deal_to_player(player, hand) do
     card = get_card()
