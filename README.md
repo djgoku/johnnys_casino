@@ -17,6 +17,8 @@
 The only thing the user has to do is reply with :hit or :stay. The player does get all card info even for dealer. The dealer has to hit until 17 or more total in cards. The dealer is also programmed to hit on soft 17. The player has access to card history but after a shuffle this will be cleared. The player also has a current_hand to show its current hand to make partial decisions on.
 
 1. Copy Casino.Player.Dealer (lib/casino/players/dealer.ex) into a new player file.
-2. Have fun!
+1. Start and iex session with `iex -S mix`
+1. Start the game: `Casino.Table.start_link([])`
+1. Have fun!
 
 Johnny5
