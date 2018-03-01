@@ -12,18 +12,6 @@ defmodule Casino.Player.Dealer do
     {:ok, %{table_pid: table_pid, history: [], current_hand: []}}
   end
 
-  def dealt_card(card) do
-    GenServer.cast(__MODULE__, {:dealt_card, card})
-  end
-
-  def deck_shuffled() do
-    GenServer.cast(__MODULE__, :deck_shuffled)
-  end
-
-  def hit_or_stay() do
-    GenServer.call(__MODULE__, :hit_or_stay)
-  end
-
   def handle_call(:hit_or_stay, _from, state) do
     current_hand = state[:current_hand]
 
@@ -43,12 +31,6 @@ defmodule Casino.Player.Dealer do
     {:reply, hit_or_stay, state}
   end
 
-  def handle_info(:new_game, state) do
-    
-    state = %{state | current_hand: []}
-    {:noreply, state}
-  end
-
   def handle_info({:card, card}, state) do
     Logger.info("(#{__MODULE__}) we were dealt a #{inspect(card)}")
     current_hand = state[:current_hand]
@@ -63,6 +45,12 @@ defmodule Casino.Player.Dealer do
   end
 
   def handle_info(:deck_shuffled, state) do
-    {:noreply, %{state | history: [], current_hand: []}}
+    {:noreply, %{state | history: []}}
+  end
+
+  def handle_info(:new_game, state) do
+    
+    state = %{state | current_hand: []}
+    {:noreply, state}
   end
 end
