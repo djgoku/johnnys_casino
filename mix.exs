@@ -24,6 +24,7 @@ defmodule Casino.Mixfile do
     [
       # {:dep_from_hexpm, "~> 0.3.0"},
       {:ex_card_deck, git: "https://github.com/djgoku/ex_card_deck.git"},
+      {:phoenix_pubsub, "~> 1.0"}
     ]
   end
 end

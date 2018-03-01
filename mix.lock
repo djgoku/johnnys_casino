@@ -1,1 +1,4 @@
-%{"ex_card_deck": {:git, "https://github.com/djgoku/ex_card_deck.git", "c3bc6eab61ea78d7e19620267ce6a397addf6b3d", []}}
+%{
+  "ex_card_deck": {:git, "https://github.com/djgoku/ex_card_deck.git", "c3bc6eab61ea78d7e19620267ce6a397addf6b3d", []},
+  "phoenix_pubsub": {:hex, :phoenix_pubsub, "1.0.2", "bfa7fd52788b5eaa09cb51ff9fcad1d9edfeb68251add458523f839392f034c1", [:mix], [], "hexpm"},
+}
