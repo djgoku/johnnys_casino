@@ -28,7 +28,7 @@ defmodule Casino do
   defp calculate_sum(hand) do
     result = Enum.map(hand, fn(card) ->
       {_, _, _, values} = card
-      
+
       new_values = if length(values) == 2 do
         List.first(values)
       else
