@@ -31,7 +31,7 @@ defmodule Casino.Player.GregAndJordan do
     deck_average = average_deck(state[:remaining_deck])
     # add_deck_to_hand = can_add_deck_to_hand(current_hand, state[:remaining_deck])
     add_deck_to_hand = false
-    Logger.info("#{__MODULE__} deck average = #{inspect(deck_average)}")
+    # Logger.info("#{__MODULE__} deck average = #{inspect(deck_average)}")
 
     hit_or_stay =
       case {sum_hand, sum_dealer} do
@@ -79,7 +79,7 @@ defmodule Casino.Player.GregAndJordan do
   end
 
   def handle_info({:card, card}, state) do
-    Logger.info("(#{__MODULE__}) we were dealt a #{inspect(card)}")
+    # Logger.info("(#{__MODULE__}) we were dealt a #{inspect(card)}")
     current_hand = state[:current_hand]
 
     new_current_hand = current_hand ++ [card]

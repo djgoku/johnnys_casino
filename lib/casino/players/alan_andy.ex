@@ -24,7 +24,7 @@ defmodule Casino.Player.AlanAndy do
     our_count = Casino.sum_hand(current_hand) |> List.first()
 
     skew = card_counter_count(history)
-    IO.puts("skew: #{skew}")
+    # IO.puts("skew: #{skew}")
 
     # if dealer between 2-6, hit until zero danger
     # if dealer between 7-11, hit until at least 17, adjusted for number of 10s and lows left
@@ -64,7 +64,7 @@ defmodule Casino.Player.AlanAndy do
   end
 
   def handle_info({:card, card}, state) do
-    Logger.info("(#{__MODULE__}) we were dealt a #{inspect(card)}")
+    # Logger.info("(#{__MODULE__}) we were dealt a #{inspect(card)}")
     current_hand = state[:current_hand]
 
     new_current_hand = current_hand ++ [card]

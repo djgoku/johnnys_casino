@@ -69,7 +69,7 @@ defmodule Casino.Player.JeffU do
   end
 
   def handle_info({:card, card}, state) do
-    Logger.info("(#{__MODULE__}) we were dealt a #{inspect(card)}")
+    # Logger.info("(#{__MODULE__}) we were dealt a #{inspect(card)}")
     current_hand = state[:current_hand]
 
     new_current_hand = current_hand ++ [card]

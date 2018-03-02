@@ -37,7 +37,7 @@ defmodule Casino.Player.SeanCribbs do
     action =
       case hit_prob(current_hand, history) do
         n when n >= 0 ->
-          Logger.info("(#{__MODULE__}) Probability of good hit: #{n}")
+          # Logger.info("(#{__MODULE__}) Probability of good hit: #{n}")
           :hit
 
         _ ->
@@ -48,7 +48,7 @@ defmodule Casino.Player.SeanCribbs do
   end
 
   def handle_info({:card, card}, state = %{current_hand: current_hand}) do
-    Logger.info("(#{__MODULE__}) we were dealt a #{inspect(card)}")
+    # Logger.info("(#{__MODULE__}) we were dealt a #{inspect(card)}")
 
     state = %{state | current_hand: [card | current_hand]}
 

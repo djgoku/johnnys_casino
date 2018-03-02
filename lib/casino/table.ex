@@ -20,7 +20,29 @@ defmodule Casino.Table do
   def init([]) do
     send(self(), :after_init)
 
-    {:ok, %{players: [], max_players: 7, total_games: 0, number_of_games: 1000, player_stats: []}}
+    :ets.new(:player_stats, [:set, :protected, :named_table])
+
+    {:ok,
+     %{
+       players: [],
+       max_players: 7,
+       total_games: 0,
+       total_rounds: 0,
+       number_of_rounds: 2,
+       number_of_games: 100,
+       player_stats: []
+     }}
+  end
+
+  def terminate(_reason, state) do
+    # Logger.debug("#{__MODULE__} terminating")
+    players = state[:players]
+
+    Enum.map(players, fn {pid, _hand} ->
+      GenServer.stop(pid)
+    end)
+
+    :stop
   end
 
   def get_players() do
@@ -38,16 +60,16 @@ defmodule Casino.Table do
 
     pids =
       if length(players) <= state[:max_players] do
-        Logger.info("(Casino.Table) starting a game with #{length(players)} of players")
+        # Logger.info("(Casino.Table) starting a game with #{length(players)} of players")
 
         Enum.map(players, fn player ->
           {:ok, pid} = player.start_link([self()])
           {pid, []}
         end)
       else
-        Logger.error(
-          "(Casino.Table) unable to start game since max players met: #{inspect(players)}"
-        )
+        # Logger.error(
+        # "(Casino.Table) unable to start game since max players met: #{inspect(players)}"
+        # )
 
         []
       end
@@ -66,7 +88,7 @@ defmodule Casino.Table do
   end
 
   def handle_info(:start_game, state) do
-    Logger.info("(Casino.Table) starting a black jack game.")
+    # Logger.info("(Casino.Table) starting a black jack game.")
     players = state[:players]
 
     new_players =
@@ -98,6 +120,45 @@ defmodule Casino.Table do
     {:noreply, state}
   end
 
+  def handle_info(:next_round, state) do
+    number_of_rounds = state[:number_of_rounds]
+    total_rounds = state[:total_rounds]
+
+    total_rounds = total_rounds + 1
+
+    state =
+      if total_rounds < number_of_rounds do
+        Phoenix.PubSub.broadcast(Casino.PubSub, "table:events", :new_game)
+
+        players =
+          Enum.map(state[:players], fn {pid, _} ->
+            {pid, []}
+          end)
+
+        player_stats =
+          Enum.map(state[:players], fn {pid, _} ->
+            registered_name = Keyword.get(Process.info(pid), :registered_name)
+            {registered_name, {0, 0, 0, 0}}
+          end)
+
+        send(self(), :start_game)
+
+        %{
+          state
+          | players: players,
+            player_stats: player_stats,
+            total_games: 0,
+            total_rounds: total_rounds
+        }
+      else
+        print_all_game_stats(state[:players])
+        Logger.info("#{__MODULE__} we are at the end of the gambling road")
+        %{state | total_rounds: total_rounds}
+      end
+
+    {:noreply, state}
+  end
+
   def handle_info(:next_game, state) do
     number_of_games = state[:number_of_games]
     total_games = state[:total_games]
@@ -115,9 +176,10 @@ defmodule Casino.Table do
           {pid, []}
         end)
       else
-        Logger.info("#{__MODULE__} well that's the game folks!")
+        # Logger.info("#{__MODULE__} well that's the game folks!")
         player_stats = state[:player_stats]
         print_game_stats(player_stats)
+        send(self(), :next_round)
         players
       end
 
@@ -127,7 +189,7 @@ defmodule Casino.Table do
   end
 
   def handle_info(:who_won, state) do
-    Logger.info("#{__MODULE__} seeing who want this game!")
+    # Logger.info("#{__MODULE__} seeing who want this game!")
     players = state[:players]
     {dealer, players} = List.pop_at(players, -1)
     {dealer_pid, dealer_temp_hand} = dealer
@@ -157,51 +219,51 @@ defmodule Casino.Table do
           send(self(), {:player_stats, registered_name, :win})
           send(self(), {:player_stats, dealer_registered_name, :bust})
 
-          Logger.info(
-            "#{__MODULE__} player #{registered_name} had #{hand} and won, dealer bust with #{
-              dealer_sum_hand
-            }!"
-          )
+        # Logger.info(
+        #   "#{__MODULE__} player #{registered_name} had #{hand} and won, dealer bust with #{
+        #     dealer_sum_hand
+        #   }!"
+        # )
 
         :player_win ->
           send(self(), {:player_stats, registered_name, :win})
           send(self(), {:player_stats, dealer_registered_name, :loss})
 
-          Logger.info(
-            "#{__MODULE__} player #{registered_name} had #{hand} and won, dealer lost with #{
-              dealer_sum_hand
-            }!"
-          )
+        # Logger.info(
+        #   "#{__MODULE__} player #{registered_name} had #{hand} and won, dealer lost with #{
+        #     dealer_sum_hand
+        #   }!"
+        # )
 
         :player_bust ->
           send(self(), {:player_stats, registered_name, :bust})
           send(self(), {:player_stats, dealer_registered_name, :win})
 
-          Logger.info(
-            "#{__MODULE__} player #{registered_name} had #{hand} and bust, dealer won with #{
-              dealer_sum_hand
-            }!"
-          )
+        # Logger.info(
+        #   "#{__MODULE__} player #{registered_name} had #{hand} and bust, dealer won with #{
+        #     dealer_sum_hand
+        #   }!"
+        # )
 
         :push ->
           send(self(), {:player_stats, registered_name, :push})
           send(self(), {:player_stats, dealer_registered_name, :push})
 
-          Logger.info(
-            "#{__MODULE__} player #{registered_name} had #{hand} and pushed, dealer pushed with #{
-              dealer_sum_hand
-            }!!"
-          )
+        # Logger.info(
+        #   "#{__MODULE__} player #{registered_name} had #{hand} and pushed, dealer pushed with #{
+        #     dealer_sum_hand
+        #   }!!"
+        # )
 
         _ ->
           send(self(), {:player_stats, registered_name, :loss})
           send(self(), {:player_stats, dealer_registered_name, :win})
 
-          Logger.info(
-            "#{__MODULE__} player #{registered_name} had #{hand} and lost, dealer won with #{
-              dealer_sum_hand
-            }!!"
-          )
+          # Logger.info(
+          #   "#{__MODULE__} player #{registered_name} had #{hand} and lost, dealer won with #{
+          #     dealer_sum_hand
+          #   }!!"
+          # )
       end
     end
 
@@ -242,7 +304,30 @@ defmodule Casino.Table do
 
   def print_game_stats(player_stats) do
     Enum.map(player_stats, fn {player, {busts, losses, pushes, wins}} ->
-      Logger.info("#{player}: busts #{busts}, losses #{losses}, pushes #{pushes}, wins #{wins}")
+      # "#{player}: busts #{busts}, losses #{losses}, pushes #{pushes}, wins #{wins}\n"
+      stats = :ets.lookup(:player_stats, Elixir.Casino.Player.Dealer)
+
+      if stats == [] do
+        :ets.insert(:player_stats, {player, [{busts, losses, pushes, wins}]})
+      else
+        [{_, all_stats}] = stats
+        new_all_stats = all_stats ++ [{busts, losses, pushes, wins}]
+        :ets.insert(:player_stats, {player, new_all_stats})
+      end
+    end)
+  end
+
+  def print_all_game_stats(players) do
+    Enum.map(players, fn {pid, _} ->
+      registered_name = Keyword.get(Process.info(pid), :registered_name)
+      [{_, all_stats}] = :ets.lookup(:player_stats, Elixir.Casino.Player.Dealer)
+
+      new_all_stats =
+        Enum.map(all_stats, fn {b, l, p, w} ->
+          "#{registered_name},#{b},#{l},#{p},#{w}\n"
+        end)
+
+      File.write("./results.txt", new_all_stats, [:append])
     end)
   end
 
