@@ -42,12 +42,10 @@ defmodule Casino.Player.Dealer do
   def handle_info({:card, card}, state) do
     Logger.info("(#{__MODULE__}) we were dealt a #{inspect(card)}")
     current_hand = state[:current_hand]
-    history = state[:history]
 
     new_current_hand = current_hand ++ [card]
-    new_history = history ++ [card]
 
-    state = %{state | current_hand: new_current_hand, history: new_history}
+    state = %{state | current_hand: new_current_hand}
 
     {:noreply, state}
   end
