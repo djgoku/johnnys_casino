@@ -5,7 +5,7 @@ defmodule Casino.Player.AlanAndy do
   # Client
 
   def start_link([table_pid]) do
-    GenServer.start_link(__MODULE__, [table_pid], [name: __MODULE__])
+    GenServer.start_link(__MODULE__, [table_pid], name: __MODULE__)
   end
 
   def init([table_pid]) do
@@ -20,11 +20,11 @@ defmodule Casino.Player.AlanAndy do
 
   def handle_call(:hit_or_stay, _from, %{history: history, current_hand: current_hand} = state) do
     dealer_hand = GenServer.call(Casino.Player.Dealer, :current_hand)
-    dealer_count = Casino.sum_hand(dealer_hand) |> List.last
-    our_count = Casino.sum_hand(current_hand) |> List.first
+    dealer_count = Casino.sum_hand(dealer_hand) |> List.last()
+    our_count = Casino.sum_hand(current_hand) |> List.first()
 
     skew = card_counter_count(history)
-    IO.puts "skew: #{skew}"
+    IO.puts("skew: #{skew}")
 
     # if dealer between 2-6, hit until zero danger
     # if dealer between 7-11, hit until at least 17, adjusted for number of 10s and lows left
@@ -34,20 +34,28 @@ defmodule Casino.Player.AlanAndy do
       cond do
         dealer_count <= 6 && our_count > 11 ->
           :stay
+
         dealer_count <= 6 ->
           :hit
+
         dealer_count <= 11 && our_count >= 17 ->
           :stay
-        dealer_count <= 11 && our_count < (17 + skew) ->
+
+        dealer_count <= 11 && our_count < 17 + skew ->
           :hit
+
         dealer_count <= 11 ->
           :stay
+
         dealer_count <= 16 && our_count > 11 ->
           :stay
+
         dealer_count <= 16 ->
           :hit
+
         dealer_count <= 21 && our_count < dealer_count ->
           :hit
+
         true ->
           :stay
       end
@@ -80,7 +88,6 @@ defmodule Casino.Player.AlanAndy do
   end
 
   def handle_info(:new_game, state) do
-    
     state = %{state | current_hand: []}
     {:noreply, state}
   end
@@ -101,6 +108,6 @@ defmodule Casino.Player.AlanAndy do
         _ -> 0
       end
     end)
-    |> Enum.sum
+    |> Enum.sum()
   end
 end

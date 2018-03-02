@@ -5,7 +5,7 @@ defmodule Casino.Player.Dealer do
   # Client
 
   def start_link([table_pid]) do
-    GenServer.start_link(__MODULE__, [table_pid], [name: __MODULE__])
+    GenServer.start_link(__MODULE__, [table_pid], name: __MODULE__)
   end
 
   def init([table_pid]) do
@@ -13,7 +13,7 @@ defmodule Casino.Player.Dealer do
 
     {:ok, %{table_pid: table_pid, history: [], current_hand: []}}
   end
-  
+
   def handle_call(:current_hand, _from, state) do
     current_hand = state[:current_hand]
 
@@ -25,16 +25,20 @@ defmodule Casino.Player.Dealer do
 
     sum_hand = Casino.sum_hand(current_hand)
 
-    hit_or_stay = case sum_hand do
-      [hand, _] when hand <= 17 ->
-        :hit
-      [_, hand] when hand <= 17 ->
-        :hit
-      [hand] when hand <= 17 ->
-        :hit
-      _ ->
-        :stay
-    end
+    hit_or_stay =
+      case sum_hand do
+        [hand, _] when hand <= 17 ->
+          :hit
+
+        [_, hand] when hand <= 17 ->
+          :hit
+
+        [hand] when hand <= 17 ->
+          :hit
+
+        _ ->
+          :stay
+      end
 
     {:reply, hit_or_stay, state}
   end
@@ -64,7 +68,6 @@ defmodule Casino.Player.Dealer do
   end
 
   def handle_info(:new_game, state) do
-    
     state = %{state | current_hand: []}
     {:noreply, state}
   end

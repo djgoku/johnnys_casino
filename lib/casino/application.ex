@@ -8,6 +8,7 @@ defmodule Casino.Application do
   def start(_type, _args) do
     # List all child processes to be supervised
     import Supervisor.Spec, warn: false
+
     children = [
       # {Casino.Table, []},
       {ExCardDeck, 1},

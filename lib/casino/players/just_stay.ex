@@ -5,7 +5,7 @@ defmodule Casino.Player.JustStay do
   # Client
 
   def start_link([table_pid]) do
-    GenServer.start_link(__MODULE__, [table_pid], [name: __MODULE__])
+    GenServer.start_link(__MODULE__, [table_pid], name: __MODULE__)
   end
 
   def init([table_pid]) do
@@ -47,7 +47,6 @@ defmodule Casino.Player.JustStay do
   end
 
   def handle_info(:new_game, state) do
-    
     state = %{state | current_hand: []}
     {:noreply, state}
   end

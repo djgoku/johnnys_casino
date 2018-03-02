@@ -10,7 +10,7 @@ defmodule Casino.Player.JeffU do
   # Client
 
   def start_link([table_pid]) do
-    GenServer.start_link(__MODULE__, [table_pid], [name: __MODULE__])
+    GenServer.start_link(__MODULE__, [table_pid], name: __MODULE__)
   end
 
   def init([table_pid]) do
@@ -42,7 +42,10 @@ defmodule Casino.Player.JeffU do
 
     hit_or_stay =
       case {sum_hand, high_card_count} do
-        {hand, high_card_count} when hand <= @high_threshold and high_card_count > @high_card_threshold -> dealer_hit(sum_dealer)
+        {hand, high_card_count}
+        when hand <= @high_threshold and high_card_count > @high_card_threshold ->
+          dealer_hit(sum_dealer)
+
         _ ->
           :stay
       end
