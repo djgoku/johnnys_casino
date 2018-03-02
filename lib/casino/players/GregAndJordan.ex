@@ -1,4 +1,4 @@
-defmodule Casino.Player.Greg do
+defmodule Casino.Player.GregAndJordan do
     use GenServer
     require Logger
 
