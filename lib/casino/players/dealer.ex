@@ -13,6 +13,12 @@ defmodule Casino.Player.Dealer do
 
     {:ok, %{table_pid: table_pid, history: [], current_hand: []}}
   end
+  
+  def handle_call(:current_hand, _from, state) do
+    current_hand = state[:current_hand]
+
+    {:reply, current_hand, state}
+  end
 
   def handle_call(:hit_or_stay, _from, state) do
     current_hand = state[:current_hand]
