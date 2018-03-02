@@ -320,6 +320,8 @@ defmodule Casino.Table do
   end
 
   def print_all_game_stats(players) do
+    file_headers = "players_name,busts,losses,pushes,wins\n"
+    File.write("./results.txt", file_headers, [:append])
     Enum.map(players, fn {pid, _} ->
       registered_name = Keyword.get(Process.info(pid), :registered_name)
       [{_, all_stats}] = :ets.lookup(:player_stats, registered_name)
