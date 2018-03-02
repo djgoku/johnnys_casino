@@ -27,7 +27,7 @@ defmodule Casino.Player.AlanAndy do
     IO.puts "skew: #{skew}"
 
     # if dealer between 2-6, hit until zero danger
-    # if dealer between 7-11, hit until at least 17
+    # if dealer between 7-11, hit until at least 17, adjusted for number of 10s and lows left
     # if dealer between 12-16, hit until zero danger
     # if dealter is between 17-21, hit until same or more as dealer
     action =
