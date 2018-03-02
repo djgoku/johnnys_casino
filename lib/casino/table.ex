@@ -21,6 +21,7 @@ defmodule Casino.Table do
     send(self(), :after_init)
 
     :ets.new(:player_stats, [:set, :protected, :named_table])
+    IO.puts("start_time #{to_string DateTime.utc_now}")
 
     {:ok,
      %{
@@ -28,7 +29,7 @@ defmodule Casino.Table do
        max_players: 7,
        total_games: 0,
        total_rounds: 0,
-       number_of_rounds: 2,
+       number_of_rounds: 1000,
        number_of_games: 100,
        player_stats: []
      }}
@@ -152,6 +153,7 @@ defmodule Casino.Table do
         }
       else
         print_all_game_stats(state[:players])
+        IO.puts("end_time #{to_string DateTime.utc_now}")
         Logger.info("#{__MODULE__} we are at the end of the gambling road")
         %{state | total_rounds: total_rounds}
       end
@@ -305,7 +307,7 @@ defmodule Casino.Table do
   def print_game_stats(player_stats) do
     Enum.map(player_stats, fn {player, {busts, losses, pushes, wins}} ->
       # "#{player}: busts #{busts}, losses #{losses}, pushes #{pushes}, wins #{wins}\n"
-      stats = :ets.lookup(:player_stats, Elixir.Casino.Player.Dealer)
+      stats = :ets.lookup(:player_stats, player)
 
       if stats == [] do
         :ets.insert(:player_stats, {player, [{busts, losses, pushes, wins}]})
@@ -320,7 +322,7 @@ defmodule Casino.Table do
   def print_all_game_stats(players) do
     Enum.map(players, fn {pid, _} ->
       registered_name = Keyword.get(Process.info(pid), :registered_name)
-      [{_, all_stats}] = :ets.lookup(:player_stats, Elixir.Casino.Player.Dealer)
+      [{_, all_stats}] = :ets.lookup(:player_stats, registered_name)
 
       new_all_stats =
         Enum.map(all_stats, fn {b, l, p, w} ->
