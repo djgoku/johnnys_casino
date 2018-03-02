@@ -23,6 +23,9 @@ defmodule Casino.Player.AlanAndy do
     dealer_count = Casino.sum_hand(dealer_hand) |> List.last
     our_count = Casino.sum_hand(current_hand) |> List.first
 
+    skew = card_counter_count(history)
+    IO.puts "skew: #{skew}"
+
     # if dealer between 2-6, hit until zero danger
     # if dealer between 7-11, hit until at least 17
     # if dealer between 12-16, hit until zero danger
@@ -33,7 +36,9 @@ defmodule Casino.Player.AlanAndy do
           :stay
         dealer_count <= 6 ->
           :hit
-        dealer_count <= 11 && our_count < 17 ->
+        dealer_count <= 11 && our_count >= 17 ->
+          :stay
+        dealer_count <= 11 && our_count < (17 + skew) ->
           :hit
         dealer_count <= 11 ->
           :stay
@@ -78,5 +83,24 @@ defmodule Casino.Player.AlanAndy do
     
     state = %{state | current_hand: []}
     {:noreply, state}
+  end
+
+  defp card_counter_count(cards) do
+    Enum.map(cards, fn {_, r, _, _} ->
+      case r do
+        "A" -> -1
+        "K" -> -1
+        "Q" -> -1
+        "J" -> -1
+        "10" -> -1
+        "2" -> 1
+        "3" -> 1
+        "4" -> 1
+        "5" -> 1
+        "6" -> 1
+        _ -> 0
+      end
+    end)
+    |> Enum.sum
   end
 end
